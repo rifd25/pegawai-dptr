@@ -1,0 +1,1897 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Data Pegawai</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- PapaParse for CSV parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <!-- XLSX for Excel Export & Import -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Custom Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0284c7',
+                            600: '#0369a1',
+                            700: '#075985',
+                            800: '#0c4a6e',
+                            900: '#07364f',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.05);
+        }
+        .dark ::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.05);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #475569;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="h-full font-sans text-slate-800 dark:text-slate-100 antialiased bg-slate-50 dark:bg-slate-900 flex flex-col transition-colors duration-200">
+
+    <!-- Top Navigation Header -->
+    <header class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-30 shadow-sm transition-colors duration-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Brand Title -->
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-brand-500/20">
+                        <i class="fa-solid fa-id-card text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white leading-tight">Dashboard Data Pegawai</h1>
+                        <p class="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5" id="sync-status">
+                            <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <span>Menghubungkan Data...</span>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Header Actions -->
+                <div class="flex items-center space-x-2 sm:space-x-3">
+                    <!-- Dark/Light Theme Toggle -->
+                    <button id="theme-toggle" onclick="toggleTheme()" class="p-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors focus:outline-none" title="Ubah Tema (Gelap/Terang)">
+                        <i class="fa-solid fa-moon text-lg dark:hidden"></i>
+                        <i class="fa-solid fa-sun text-lg hidden dark:block text-amber-400"></i>
+                    </button>
+
+                    <!-- Refresh Button -->
+                    <button onclick="fetchData()" class="inline-flex items-center px-3.5 py-2 text-xs sm:text-sm font-medium rounded-xl text-white bg-brand-600 hover:bg-brand-700 transition-colors shadow-sm">
+                        <i class="fa-solid fa-arrows-rotate mr-2" id="refresh-icon"></i>
+                        <span>Update Data</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Navigation Tabs Bar -->
+            <nav class="flex space-x-1 sm:space-x-2 border-t border-slate-100 dark:border-slate-700/50 overflow-x-auto py-2 scrollbar-none" id="main-nav">
+                <button onclick="switchTab('dashboard')" id="tab-dashboard" class="nav-tab inline-flex items-center px-3.5 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap bg-brand-50 dark:bg-brand-900/40 text-brand-700 dark:text-brand-300">
+                    <i class="fa-solid fa-chart-pie mr-2"></i>
+                    Dashboard
+                </button>
+                <button onclick="switchTab('jabatan')" id="tab-jabatan" class="nav-tab inline-flex items-center px-3.5 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
+                    <i class="fa-solid fa-briefcase mr-2"></i>
+                    Data Per Jabatan
+                </button>
+                <button onclick="switchTab('bidang')" id="tab-bidang" class="nav-tab inline-flex items-center px-3.5 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
+                    <i class="fa-solid fa-sitemap mr-2"></i>
+                    Data Per Bidang
+                </button>
+                <button onclick="switchTab('pegawai')" id="tab-pegawai" class="nav-tab inline-flex items-center px-3.5 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
+                    <i class="fa-solid fa-users mr-2"></i>
+                    Data Pegawai
+                </button>
+                <button onclick="switchTab('pensiun')" id="tab-pensiun" class="nav-tab inline-flex items-center px-3.5 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
+                    <i class="fa-solid fa-user-clock mr-2"></i>
+                    Pegawai Pensiun
+                </button>
+                <button onclick="switchTab('about')" id="tab-about" class="nav-tab inline-flex items-center px-3.5 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
+                    <i class="fa-solid fa-circle-info mr-2"></i>
+                    About Sistem
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- Connection Alert Banner -->
+        <div id="connection-alert" class="hidden rounded-xl border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/40 p-4 text-amber-800 dark:text-amber-300 flex items-start justify-between shadow-sm">
+            <div class="flex items-start space-x-3">
+                <i class="fa-solid fa-triangle-exclamation text-amber-500 text-lg mt-0.5"></i>
+                <div class="text-xs sm:text-sm">
+                    <span class="font-semibold" id="alert-title">Koneksi Spreadsheet Terbatas!</span>
+                    <p class="mt-0.5" id="alert-desc">Akses langsung file lokal dibatasi CORS. Menggunakan sampel data. Silakan gunakan tombol 'Update Data' untuk menyinkronkan data.</p>
+                </div>
+            </div>
+            <button onclick="closeAlert()" class="text-amber-500 hover:text-amber-700">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- VIEW 1: DASHBOARD OVERVIEW -->
+        <!-- ========================================== -->
+        <div id="view-dashboard" class="space-y-6">
+            <!-- Summary KPI Cards -->
+            <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Pegawai</p>
+                            <h3 class="text-3xl font-extrabold text-slate-900 dark:text-white mt-1" id="kpi-total">0</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-users"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex items-center text-xs text-slate-500 dark:text-slate-400">
+                        <span class="text-emerald-600 dark:text-emerald-400 font-medium flex items-center mr-1">
+                            <i class="fa-solid fa-circle-check mr-1"></i> Terdaftar
+                        </span>
+                        <span>dalam basis data</span>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Pegawai Aktif</p>
+                            <h3 class="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-1" id="kpi-aktif">0</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-xl bg-emerald-50 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-user-check"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex items-center text-xs text-slate-500 dark:text-slate-400">
+                        <span class="text-slate-600 dark:text-slate-400 font-medium mr-1" id="kpi-nonaktif-sub">0 Non-Aktif</span>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">PNS / ASN</p>
+                            <h3 class="text-3xl font-extrabold text-indigo-600 dark:text-indigo-400 mt-1" id="kpi-pns">0</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-building-user"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex items-center text-xs text-slate-500 dark:text-slate-400">
+                        <span class="text-slate-600 dark:text-slate-400 font-medium mr-1" id="kpi-nonpns-sub">0 PPPK / Non-PNS</span>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Segera Pensiun</p>
+                            <h3 class="text-3xl font-extrabold text-amber-600 dark:text-amber-400 mt-1" id="kpi-pensiun">0</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-xl bg-amber-50 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-user-clock"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex items-center text-xs text-slate-500 dark:text-slate-400">
+                        <span class="text-slate-600 dark:text-slate-400 font-medium mr-1">Dalam 2 tahun ke depan</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Charts Section -->
+            <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm">
+                    <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-4">
+                        <i class="fa-solid fa-chart-pie text-brand-500"></i>
+                        Sebaran Pegawai per Bidang
+                    </h3>
+                    <div class="relative h-64 w-full flex items-center justify-center">
+                        <canvas id="chart-bidang"></canvas>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm">
+                    <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-4">
+                        <i class="fa-solid fa-chart-bar text-indigo-500"></i>
+                        Status Kepegawaian
+                    </h3>
+                    <div class="relative h-64 w-full flex items-center justify-center">
+                        <canvas id="chart-status"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Quick Widgets Section -->
+            <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- All Bidang List Card -->
+                <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
+                    <h4 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                        <span>
+                            <i class="fa-solid fa-sitemap text-brand-500 mr-1.5"></i>
+                            Daftar Semua Bidang
+                        </span>
+                    </h4>
+                    <div id="widget-top-bidang" class="space-y-2 text-xs max-h-60 overflow-y-auto pr-1 scrollbar-none">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Level Breakdown -->
+                <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
+                    <h4 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                        <i class="fa-solid fa-layer-group text-sky-500 mr-1.5"></i>
+                        Distribusi Level
+                    </h4>
+                    <div id="widget-level" class="space-y-2 text-xs">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Next Retirement Alert Card -->
+                <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h4 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                            <i class="fa-solid fa-hourglass-half text-rose-500 mr-1.5"></i>
+                            Pensiun Terdekat
+                        </h4>
+                        <button onclick="switchTab('pensiun')" class="text-[11px] text-brand-600 dark:text-brand-400 font-semibold hover:underline">
+                            Lihat Semua &rarr;
+                        </button>
+                    </div>
+                    <div id="widget-pensiun-terdekat" class="space-y-2 text-xs">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- VIEW 1.5: DATA PER JABATAN -->
+        <!-- ========================================== -->
+        <div id="view-jabatan" class="hidden space-y-6">
+            <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <i class="fa-solid fa-briefcase text-brand-600"></i>
+                        Data Pegawai per Jabatan / Level
+                    </h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Klik salah satu card kategori level di bawah untuk memfilter data pada tabel tunggal.</p>
+                </div>
+                <div class="flex items-center gap-3 w-full sm:w-auto">
+                    <div class="relative flex-1 sm:w-64">
+                        <input type="text" id="jabatan-search" oninput="renderJabatanView()" placeholder="Cari Pegawai / Jabatan..." class="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Category Summary Stats Bar (Interactive Cards) -->
+            <div id="jabatan-summary-bar" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5">
+                <!-- Dynamically populated stat pills -->
+            </div>
+
+            <!-- Single Table Container -->
+            <div id="jabatan-table-card" class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                <!-- Dynamically populated single category table -->
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- VIEW 2: DATA PER BIDANG -->
+        <!-- ========================================== -->
+        <div id="view-bidang" class="hidden space-y-6">
+            <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-900 dark:text-white">Data Pegawai per Bidang</h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Menampilkan daftar unit bidang beserta daftar anggota pegawai didalamnya.</p>
+                </div>
+                <div class="relative w-full sm:w-64">
+                    <input type="text" id="bidang-search" oninput="renderBidangView()" placeholder="Cari Bidang..." class="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+                </div>
+            </div>
+
+            <div id="bidang-cards-container" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Dynamically Populated Cards for each Bidang -->
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- VIEW 3: DATA PEGAWAI TABEL -->
+        <!-- ========================================== -->
+        <div id="view-pegawai" class="hidden space-y-6">
+            <!-- Filter Bar -->
+            <section class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm space-y-4">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div class="relative flex-1">
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </div>
+                        <input type="text" id="search-input" oninput="applyFilters()" placeholder="Cari Nama, NIP, Jabatan, Tim..." class="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl text-xs sm:text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all">
+                    </div>
+
+                    <div class="flex items-center space-x-2">
+                        <button onclick="exportToExcel()" class="inline-flex items-center px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/60 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-xl text-xs font-medium transition-colors">
+                            <i class="fa-solid fa-file-excel text-emerald-600 mr-2"></i>
+                            Export Excel
+                        </button>
+                        <button onclick="resetFilters()" class="inline-flex items-center px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-xl text-xs font-medium transition-colors">
+                            <i class="fa-solid fa-rotate-left mr-2"></i>
+                            Reset Filter
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Dropdown Filters -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-slate-100 dark:border-slate-700/50">
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Bidang</label>
+                        <select id="filter-bidang" onchange="applyFilters()" class="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-xs rounded-lg p-2 focus:ring-brand-500">
+                            <option value="">Semua Bidang</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Status Kepegawaian</label>
+                        <select id="filter-status" onchange="applyFilters()" class="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-xs rounded-lg p-2 focus:ring-brand-500">
+                            <option value="">Semua Status</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Status Aktif</label>
+                        <select id="filter-aktif" onchange="applyFilters()" class="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-xs rounded-lg p-2 focus:ring-brand-500">
+                            <option value="">Semua Status Aktif</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Level</label>
+                        <select id="filter-level" onchange="applyFilters()" class="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-xs rounded-lg p-2 focus:ring-brand-500">
+                            <option value="">Semua Level</option>
+                        </select>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Table Container -->
+            <section class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden flex flex-col">
+                <div class="px-5 py-4 border-b border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50 dark:bg-slate-800/50">
+                    <div class="flex items-center space-x-2">
+                        <h2 class="text-sm font-bold text-slate-800 dark:text-white">Daftar Pegawai</h2>
+                        <span id="showing-badge" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-brand-50 dark:bg-brand-900/50 text-brand-700 dark:text-brand-300 border border-brand-200 dark:border-brand-800">
+                            0 Data
+                        </span>
+                    </div>
+
+                    <div class="flex items-center space-x-2 text-xs text-slate-500 dark:text-slate-400">
+                        <span>Tampilkan:</span>
+                        <select id="page-size" onchange="changePageSize()" class="bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg px-2 py-1 text-xs focus:ring-brand-500">
+                            <option value="10">10</option>
+                            <option value="25" selected>25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                        <span>baris</span>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto min-h-[380px] relative">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead>
+                            <tr class="bg-slate-100/80 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 font-semibold uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">
+                                <th class="py-3 px-4 w-12 text-center">No</th>
+                                <th class="py-3 px-4 cursor-pointer hover:bg-slate-200/60 dark:hover:bg-slate-600/50" onclick="sortTable('Nama')">
+                                    Nama <i class="fa-solid fa-sort ml-1 text-slate-400"></i>
+                                </th>
+                                <th class="py-3 px-4">NIP</th>
+                                <th class="py-3 px-4">Jabatan</th>
+                                <th class="py-3 px-4">Bidang / Tim</th>
+                                <th class="py-3 px-4">Status</th>
+                                <th class="py-3 px-4 text-center">Aktif</th>
+                                <th class="py-3 px-4 text-center">Tgl Pensiun</th>
+                                <th class="py-3 px-4 text-center w-20">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-body" class="divide-y divide-slate-100 dark:divide-slate-700 text-slate-700 dark:text-slate-200">
+                            <!-- Dynamic Rows -->
+                        </tbody>
+                    </table>
+
+                    <div id="loading-spinner" class="absolute inset-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm flex flex-col items-center justify-center space-y-3 z-10 hidden">
+                        <div class="w-10 h-10 border-4 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
+                        <p class="text-xs font-medium text-slate-600 dark:text-slate-300">Memuat data...</p>
+                    </div>
+
+                    <div id="empty-state" class="hidden p-12 text-center text-slate-500 dark:text-slate-400">
+                        <i class="fa-solid fa-folder-open text-4xl text-slate-300 dark:text-slate-600 mb-3 block"></i>
+                        <p class="font-medium">Tidak ada data pegawai yang cocok.</p>
+                    </div>
+                </div>
+
+                <div class="px-5 py-3 border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600 dark:text-slate-400">
+                    <div id="pagination-info">Menampilkan 0 data</div>
+                    <div class="flex items-center space-x-1" id="pagination-buttons"></div>
+                </div>
+            </section>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- VIEW 4: DATA PEGAWAI PENSIUN -->
+        <!-- ========================================== -->
+        <div id="view-pensiun" class="hidden space-y-6">
+            <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <i class="fa-solid fa-user-clock text-amber-500"></i>
+                        Daftar Pegawai Pensiun (Diurutkan Terdekat)
+                    </h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Prediksi hitung mundur sisa masa bakti sebelum memasuki Batas Usia Pensiun (BUP) dihitung per hari ini.</p>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <select id="filter-pensiun-kriteria" onchange="renderPensiunView()" class="bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-xs rounded-xl p-2.5 focus:ring-brand-500">
+                        <option value="all" selected>Semua Pegawai Pensiun</option>
+                        <option value="1year">Pensiun &lt; 1 Tahun</option>
+                        <option value="2year">Pensiun 1 - 2 Tahun</option>
+                        <option value="retired">Sudah Pensiun</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Pensiun Cards / Table -->
+            <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead>
+                            <tr class="bg-slate-100/80 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 font-semibold uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">
+                                <th class="py-3.5 px-4 w-12 text-center">No</th>
+                                <th class="py-3.5 px-4">Nama / NIP</th>
+                                <th class="py-3.5 px-4">Jabatan & Bidang</th>
+                                <th class="py-3.5 px-4 text-center">Tgl Lahir / BUP</th>
+                                <th class="py-3.5 px-4 text-center">Tanggal Pensiun</th>
+                                <th class="py-3.5 px-4 text-center">Sisa Waktu (Hitung Mundur)</th>
+                                <th class="py-3.5 px-4 text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pensiun-table-body" class="divide-y divide-slate-100 dark:divide-slate-700 text-slate-700 dark:text-slate-200">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="pensiun-empty" class="hidden p-12 text-center text-slate-500 dark:text-slate-400">
+                    <i class="fa-solid fa-check-circle text-4xl text-emerald-400 mb-3 block"></i>
+                    <p class="font-medium">Tidak ada pegawai yang pensiun dalam kriteria filter ini.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- VIEW 5: ABOUT SISTEM -->
+        <!-- ========================================== -->
+        <div id="view-about" class="hidden space-y-6">
+            <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm space-y-6">
+                <div class="flex items-center space-x-4 border-b border-slate-100 dark:border-slate-700 pb-5">
+                    <div class="w-14 h-14 rounded-2xl bg-brand-600 text-white flex items-center justify-center text-2xl shadow-lg shadow-brand-500/30">
+                        <i class="fa-solid fa-server"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-900 dark:text-white">Dashboard Management Data Pegawai v2.0</h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Sistem Pengelolaan & Visualisasi Data Pegawai Terintegrasi Google Spreadsheet</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-slate-600 dark:text-slate-300">
+                    <div class="space-y-3">
+                        <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                            <i class="fa-solid fa-circle-check text-emerald-500"></i> Fitur Utama Sistem
+                        </h3>
+                        <ul class="space-y-2 list-disc list-inside text-slate-600 dark:text-slate-400">
+                            <li><strong>Live Google Spreadsheet Integration</strong>: Sinkronisasi data otomatis langsung dari cloud spreadsheet dengan tombol Update Data.</li>
+                            <li><strong>Perhitungan Pensiun Otomatis</strong>: Estimasi waktu hitung mundur sisa masa bakti pegawai berdasarkan BUP.</li>
+                            <li><strong>Dark & Light Mode</strong>: Dukungan tampilan mode gelap dan terang demi kenyamanan penglihatan.</li>
+                            <li><strong>Filter & Multi-Export</strong>: Menyaring data dinamis dan ekspor ke Excel siap cetak.</li>
+                        </ul>
+                    </div>
+
+                    <div class="space-y-3">
+                        <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                            <i class="fa-solid fa-book-open text-brand-500"></i> Sumber Data Google Spreadsheet
+                        </h3>
+                        <p class="text-slate-600 dark:text-slate-400">Sistem terhubung langsung ke spreadsheet master. Klik tombol <strong>Update Data</strong> pada pojok kanan atas navigasi untuk memperbarui data pegawai terkini secara real-time.</p>
+                    </div>
+                </div>
+
+                <div class="p-4 bg-slate-50 dark:bg-slate-700/40 rounded-xl border border-slate-200 dark:border-slate-700 text-xs flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <div>
+                        <span class="font-bold text-slate-800 dark:text-slate-200">Status Sumber Data Aktif:</span>
+                        <p class="text-slate-500 dark:text-slate-400 truncate max-w-md" id="about-source-url">-</p>
+                    </div>
+                    <button onclick="fetchData()" class="px-3.5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg font-medium whitespace-nowrap">
+                        <i class="fa-solid fa-arrows-rotate mr-1.5"></i> Update Data
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modals and Overlays -->
+    <!-- Modal Detail Pegawai -->
+    <div id="modal-detail" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 space-y-5 relative max-h-[90vh] overflow-y-auto">
+            <div class="flex items-start justify-between border-b border-slate-100 dark:border-slate-700 pb-4">
+                <div class="flex items-center space-x-3">
+                    <div class="w-12 h-12 rounded-full bg-brand-100 dark:bg-brand-900/60 text-brand-700 dark:text-brand-300 font-bold flex items-center justify-center text-lg border border-brand-200 dark:border-brand-700" id="detail-avatar">
+                        PE
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="text-base font-bold text-slate-900 dark:text-white" id="detail-nama">-</h3>
+                            <button id="copy-detail-nama" class="text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors" title="Salin Nama">
+                                <i class="fa-regular fa-copy text-xs"></i>
+                            </button>
+                        </div>
+                        <div class="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                            <span id="detail-nip">NIP: -</span>
+                            <button id="copy-detail-nip" class="text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors" title="Salin NIP">
+                                <i class="fa-regular fa-copy text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <button onclick="closeDetailModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div class="p-3 bg-slate-50 dark:bg-slate-700/40 rounded-xl border border-slate-100 dark:border-slate-700">
+                    <p class="text-slate-400 font-medium">Jabatan</p>
+                    <p class="font-semibold text-slate-800 dark:text-slate-100 mt-0.5" id="detail-jabatan">-</p>
+                </div>
+                <div class="p-3 bg-slate-50 dark:bg-slate-700/40 rounded-xl border border-slate-100 dark:border-slate-700">
+                    <p class="text-slate-400 font-medium">Pangkat / Golongan</p>
+                    <p class="font-semibold text-slate-800 dark:text-slate-100 mt-0.5" id="detail-pangkat">-</p>
+                </div>
+                <div class="p-3 bg-slate-50 dark:bg-slate-700/40 rounded-xl border border-slate-100 dark:border-slate-700">
+                    <p class="text-slate-400 font-medium">Status Kepegawaian</p>
+                    <p class="font-semibold text-slate-800 dark:text-slate-100 mt-0.5" id="detail-status-pegawai">-</p>
+                </div>
+                <div class="p-3 bg-slate-50 dark:bg-slate-700/40 rounded-xl border border-slate-100 dark:border-slate-700">
+                    <p class="text-slate-400 font-medium">Status Aktif</p>
+                    <p class="font-semibold text-slate-800 dark:text-slate-100 mt-0.5" id="detail-status-aktif">-</p>
+                </div>
+                <div class="p-3 bg-slate-50 dark:bg-slate-700/40 rounded-xl border border-slate-100 dark:border-slate-700">
+                    <p class="text-slate-400 font-medium">Bidang</p>
+                    <p class="font-semibold text-slate-800 dark:text-slate-100 mt-0.5" id="detail-bidang">-</p>
+                </div>
+                <div class="p-3 bg-slate-50 dark:bg-slate-700/40 rounded-xl border border-slate-100 dark:border-slate-700">
+                    <p class="text-slate-400 font-medium">Tim</p>
+                    <p class="font-semibold text-slate-800 dark:text-slate-100 mt-0.5" id="detail-tim">-</p>
+                </div>
+                <div class="p-3 bg-slate-50 dark:bg-slate-700/40 rounded-xl border border-slate-100 dark:border-slate-700">
+                    <p class="text-slate-400 font-medium">Level</p>
+                    <p class="font-semibold text-slate-800 dark:text-slate-100 mt-0.5" id="detail-level">-</p>
+                </div>
+                <div class="p-3 bg-slate-50 dark:bg-slate-700/40 rounded-xl border border-slate-100 dark:border-slate-700">
+                    <p class="text-slate-400 font-medium">Tanggal Lahir</p>
+                    <p class="font-semibold text-slate-800 dark:text-slate-100 mt-0.5" id="detail-tgl-lahir">-</p>
+                </div>
+                <div class="p-3 bg-slate-50 dark:bg-slate-700/40 rounded-xl border border-slate-100 dark:border-slate-700">
+                    <p class="text-slate-400 font-medium">BUP (Batas Usia Pensiun)</p>
+                    <p class="font-semibold text-slate-800 dark:text-slate-100 mt-0.5" id="detail-bup">-</p>
+                </div>
+                <div class="p-3 bg-slate-50 dark:bg-slate-700/40 rounded-xl border border-slate-100 dark:border-slate-700">
+                    <p class="text-slate-400 font-medium">Tanggal Pensiun</p>
+                    <p class="font-semibold text-slate-800 dark:text-slate-100 mt-0.5" id="detail-tgl-pensiun">-</p>
+                </div>
+            </div>
+
+            <div class="p-3 bg-slate-50 dark:bg-slate-700/40 rounded-xl border border-slate-100 dark:border-slate-700 text-xs">
+                <p class="text-slate-400 font-medium">Keterangan</p>
+                <p class="font-semibold text-slate-800 dark:text-slate-100 mt-0.5" id="detail-keterangan">-</p>
+            </div>
+
+            <div class="flex justify-end pt-2">
+                <button onclick="closeDetailModal()" class="px-4 py-2 bg-slate-800 dark:bg-slate-700 hover:bg-slate-900 text-white rounded-xl text-xs font-medium">
+                    Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Overlay -->
+    <div id="toast-message" class="fixed bottom-5 right-5 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-xs px-4 py-3 rounded-xl shadow-2xl hidden z-50 flex items-center space-x-2 border border-slate-700 dark:border-slate-300">
+        <i class="fa-solid fa-circle-info text-brand-400 dark:text-brand-600"></i>
+        <span id="toast-text">Pesan Notifikasi</span>
+    </div>
+
+    <script>
+        // Constants & Defaults
+        const DEFAULT_SPREADSHEET_ID = "128_0VBUhi_jFHYbi9yyy5AhV9PaF-zbd";
+        const DEFAULT_GID = "668615843";
+        const DEFAULT_URL = `https://docs.google.com/spreadsheets/d/${DEFAULT_SPREADSHEET_ID}/gviz/tq?tqx=out:csv&gid=${DEFAULT_GID}`;
+
+        // Global State
+        let rawPegawaiData = [];
+        let filteredPegawaiData = [];
+        let activeTab = 'dashboard';
+        let currentPage = 1;
+        let pageSize = 25;
+        let sortColumn = 'No';
+        let sortDirection = 'asc';
+        let selectedJabatanCategory = 'all';
+
+        let chartBidangInstance = null;
+        let chartStatusInstance = null;
+
+        // Initialize App
+        window.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            initApp();
+        });
+
+        function initTheme() {
+            const savedTheme = localStorage.getItem('app_theme') || 'light';
+            if (savedTheme === 'dark') {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        }
+
+        function toggleTheme() {
+            const isDark = document.documentElement.classList.toggle('dark');
+            localStorage.setItem('app_theme', isDark ? 'dark' : 'light');
+            renderCharts();
+        }
+
+        function initApp() {
+            const aboutUrlEl = document.getElementById('about-source-url');
+            if (aboutUrlEl) aboutUrlEl.textContent = DEFAULT_URL;
+            fetchData();
+        }
+
+        function switchTab(tabId) {
+            activeTab = tabId;
+            const tabs = ['dashboard', 'jabatan', 'bidang', 'pegawai', 'pensiun', 'about'];
+
+            tabs.forEach(t => {
+                const view = document.getElementById(`view-${t}`);
+                const tabBtn = document.getElementById(`tab-${t}`);
+
+                if (t === tabId) {
+                    if (view) view.classList.remove('hidden');
+                    if (tabBtn) tabBtn.className = "nav-tab inline-flex items-center px-3.5 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap bg-brand-50 dark:bg-brand-900/40 text-brand-700 dark:text-brand-300";
+                } else {
+                    if (view) view.classList.add('hidden');
+                    if (tabBtn) tabBtn.className = "nav-tab inline-flex items-center px-3.5 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800";
+                }
+            });
+
+            if (tabId === 'jabatan') renderJabatanView();
+            if (tabId === 'bidang') renderBidangView();
+            if (tabId === 'pensiun') renderPensiunView();
+        }
+
+        async function fetchData() {
+            showLoading(true);
+            const refreshIcon = document.getElementById('refresh-icon');
+            if (refreshIcon) refreshIcon.classList.add('fa-spin');
+
+            const fetchUrls = [
+                `https://docs.google.com/spreadsheets/d/${DEFAULT_SPREADSHEET_ID}/gviz/tq?tqx=out:csv&gid=${DEFAULT_GID}`,
+                `https://docs.google.com/spreadsheets/d/${DEFAULT_SPREADSHEET_ID}/export?format=csv&gid=${DEFAULT_GID}`
+            ];
+
+            let success = false;
+
+            for (const url of fetchUrls) {
+                try {
+                    const response = await fetch(url, { cache: 'no-cache' });
+                    if (!response.ok) continue;
+
+                    const csvText = await response.text();
+                    
+                    if (csvText && csvText.trim().length > 0) {
+                        Papa.parse(csvText, {
+                            skipEmptyLines: true,
+                            complete: function(results) {
+                                if (results.data && results.data.length > 0) {
+                                    processParsedCSV(results.data);
+                                    updateSyncStatus(true);
+                                    closeAlert();
+                                    success = true;
+                                    showToast("Data pegawai berhasil diperbarui!");
+                                }
+                            }
+                        });
+                        if (success) break;
+                    }
+                } catch (e) {
+                    console.warn("Fetch failed for endpoint: ", url, e);
+                }
+            }
+
+            if (!success) {
+                showAlert("Koneksi Spreadsheet Terbatas!", "Gagal mengambil data langsung dari server Google Sheet. Menampilkan data fallback.");
+                loadFallbackData();
+                updateSyncStatus(false);
+            }
+
+            showLoading(false);
+            if (refreshIcon) refreshIcon.classList.remove('fa-spin');
+        }
+
+        function processParsedCSV(rows) {
+            if (!rows || rows.length < 2) {
+                showToast("Format data tidak sesuai.");
+                return;
+            }
+
+            let headerRowIndex = -1;
+            for (let i = 0; i < Math.min(rows.length, 10); i++) {
+                const r = rows[i].map(c => String(c).trim().toLowerCase());
+                if (r.includes('nama') || r.includes('nip')) {
+                    headerRowIndex = i;
+                    break;
+                }
+            }
+
+            if (headerRowIndex === -1) headerRowIndex = 0;
+
+            const rawData = [];
+
+            for (let i = headerRowIndex + 1; i < rows.length; i++) {
+                const row = rows[i];
+                if (!row || row.length === 0) continue;
+
+                const no = row[0] ? String(row[0]).trim() : '';
+                const nama = row[1] ? String(row[1]).trim() : '';
+                const nip = row[2] ? String(row[2]).trim() : '-';
+                const pangkat = row[3] ? String(row[3]).trim() : '-';
+                const jabatan = row[4] ? String(row[4]).trim() : '-';
+                const statusPegawai = row[5] ? String(row[5]).trim() : '-';
+                const bidang = row[6] ? String(row[6]).trim() : 'Lainnya';
+                const tim = row[7] ? String(row[7]).trim() : '-';
+                const statusAktif = row[8] ? String(row[8]).trim() : 'Aktif';
+                const keterangan = row[9] ? String(row[9]).trim() : '-';
+                const level = row[10] ? String(row[10]).trim() : '-';
+                const tglLahir = row[11] ? String(row[11]).trim() : '-';
+                const bup = row[12] ? String(row[12]).trim() : '-';
+                const tglPensiun = row[13] ? String(row[13]).trim() : '-';
+
+                if (!nama && !no && (!nip || nip === '-')) continue;
+
+                rawData.push({
+                    No: no || (rawData.length + 1).toString(),
+                    Nama: nama,
+                    NIP: nip,
+                    Pangkat: pangkat,
+                    Jabatan: jabatan,
+                    StatusPegawai: statusPegawai,
+                    Bidang: bidang,
+                    Tim: tim,
+                    StatusAktif: statusAktif,
+                    Keterangan: keterangan,
+                    Level: level,
+                    TanggalLahir: tglLahir,
+                    BUP: bup,
+                    TanggalPensiun: tglPensiun
+                });
+            }
+
+            rawPegawaiData = rawData;
+            populateFilterDropdowns();
+            applyFilters();
+            renderKPIs();
+            renderCharts();
+            renderWidgets();
+            if (activeTab === 'jabatan') renderJabatanView();
+            if (activeTab === 'pensiun') renderPensiunView();
+            if (activeTab === 'bidang') renderBidangView();
+        }
+
+        function loadFallbackData() {
+            const fallbackRows = [
+                ["No", "Nama", "NIP", "Pangkat/Gol", "Jabatan", "Status Kepegawaian", "Bidang", "Tim", "Status Aktif", "Keterangan", "Level", "Tanggal Lahir", "BUP", "Tanggal Pensiun"],
+                ["1", "Drs. H. Ahmad Fauzi, M.Si", "19681112 199203 1 002", "Pembina Utama Muda (IV/c)", "Kepala Bidang", "PNS", "Sekretariat", "Tim Perencanaan", "Aktif", "-", "Eselon III", "12/11/1968", "58", "12/12/2026"],
+                ["2", "Siti Rahmawati, S.Kom", "19880315 201101 2 004", "Penata Tingkat I (III/d)", "Analis Sistem Informasi", "PNS", "Informatika & Layanan E-Gov", "Tim Pengembang", "Aktif", "-", "Staff", "15/03/1988", "58", "15/04/2046"],
+                ["3", "Budi Santoso, S.T.", "19690120 199803 1 005", "Pembina (IV/a)", "Analis Infrastruktur", "PNS", "Informatika & Layanan E-Gov", "Tim Jaringan", "Aktif", "-", "Staff", "20/01/1969", "58", "20/02/2027"],
+                ["4", "Dewi Lestari, S.E.", "19950710 202201 2 010", "Penata Muda (III/a)", "Pranata Komputer", "PPPK", "Statistik & Persandian", "Tim Pengolahan Data", "Aktif", "-", "Staff", "10/07/1995", "58", "10/08/2053"],
+                ["5", "Ir. Hendra Wijaya", "19661204 199402 1 001", "Pembina Utama Madya (IV/d)", "Kepala Dinas", "PNS", "Sekretariat", "Pimpinan", "Aktif", "-", "Eselon II", "04/12/1966", "60", "04/01/2027"],
+                ["6", "Rina Kurnia, A.Md", "-", "-", "Pengadministrasi Umum", "PPNPN", "Sekretariat", "Tim Keuangan", "Aktif", "-", "Staff", "18/09/1999", "58", "18/10/2057"],
+                ["7", "Eko Prasetyo, S.H.", "19820814 200902 1 003", "Penata (III/c)", "Pengawas Layanan Publik", "PNS", "Informasi & Komunikasi Publik", "Tim Humas", "Aktif", "-", "Staff", "14/08/1982", "58", "14/09/2040"],
+                ["8", "Dian Sastro, S.Sos", "19681212 199003 2 001", "Pembina (IV/a)", "Pranata Humas Ahli Madya", "PNS", "Informasi & Komunikasi Publik", "Tim Media", "Aktif", "Mendekati BUP", "Staff", "12/12/1968", "58", "12/01/2027"],
+                ["9", "Rizal Pratama, S.T.", "19910405 201903 1 008", "Penata Muda Tk. I (III/b)", "Pengelola Network", "PNS", "Informatika & Layanan E-Gov", "Tim Jaringan", "Aktif", "-", "Staff", "05/04/1991", "58", "05/05/2049"],
+                ["10", "Maya Indah, S.E.", "-", "-", "Petugas Kebersihan", "Non-ASN", "Sekretariat", "Tim Umum", "Non-Aktif", "Resign", "Staff", "12/12/1997", "58", "01/01/2055"]
+            ];
+            processParsedCSV(fallbackRows);
+        }
+
+        function populateFilterDropdowns() {
+            const bidangSet = new Set();
+            const statusSet = new Set();
+            const aktifSet = new Set();
+            const levelSet = new Set();
+
+            rawPegawaiData.forEach(p => {
+                if (p.Bidang && p.Bidang !== '-') bidangSet.add(p.Bidang);
+                if (p.StatusPegawai && p.StatusPegawai !== '-') statusSet.add(p.StatusPegawai);
+                if (p.StatusAktif && p.StatusAktif !== '-') aktifSet.add(p.StatusAktif);
+                if (p.Level && p.Level !== '-') levelSet.add(p.Level);
+            });
+
+            fillSelect('filter-bidang', Array.from(bidangSet).sort());
+            fillSelect('filter-status', Array.from(statusSet).sort());
+            fillSelect('filter-aktif', Array.from(aktifSet).sort());
+            fillSelect('filter-level', Array.from(levelSet).sort());
+        }
+
+        function fillSelect(elementId, values) {
+            const select = document.getElementById(elementId);
+            if (!select) return;
+            const currentVal = select.value;
+            select.innerHTML = `<option value="">Semua ${elementId.replace('filter-', '').toUpperCase()}</option>`;
+            values.forEach(v => {
+                const opt = document.createElement('option');
+                opt.value = v;
+                opt.textContent = v;
+                select.appendChild(opt);
+            });
+            select.value = currentVal;
+        }
+
+        function applyFilters() {
+            const search = (document.getElementById('search-input')?.value || '').toLowerCase();
+            const filterBidang = document.getElementById('filter-bidang')?.value || '';
+            const filterStatus = document.getElementById('filter-status')?.value || '';
+            const filterAktif = document.getElementById('filter-aktif')?.value || '';
+            const filterLevel = document.getElementById('filter-level')?.value || '';
+
+            filteredPegawaiData = rawPegawaiData.filter(p => {
+                const matchSearch = !search || 
+                    p.Nama.toLowerCase().includes(search) ||
+                    p.NIP.toLowerCase().includes(search) ||
+                    p.Jabatan.toLowerCase().includes(search) ||
+                    p.Tim.toLowerCase().includes(search) ||
+                    p.Bidang.toLowerCase().includes(search);
+
+                const matchBidang = !filterBidang || p.Bidang === filterBidang;
+                const matchStatus = !filterStatus || p.StatusPegawai === filterStatus;
+                const matchAktif = !filterAktif || p.StatusAktif === filterAktif;
+                const matchLevel = !filterLevel || p.Level === filterLevel;
+
+                return matchSearch && matchBidang && matchStatus && matchAktif && matchLevel;
+            });
+
+            currentPage = 1;
+            renderTable();
+        }
+
+        function resetFilters() {
+            if (document.getElementById('search-input')) document.getElementById('search-input').value = '';
+            if (document.getElementById('filter-bidang')) document.getElementById('filter-bidang').value = '';
+            if (document.getElementById('filter-status')) document.getElementById('filter-status').value = '';
+            if (document.getElementById('filter-aktif')) document.getElementById('filter-aktif').value = '';
+            if (document.getElementById('filter-level')) document.getElementById('filter-level').value = '';
+            applyFilters();
+        }
+
+        function parseDateString(str) {
+            if (!str || str === '-' || str === 'undefined' || str === 'null') return null;
+            str = String(str).trim();
+
+            // 1. Check if Excel/Google Sheets Serial Number (e.g., 25154 or 45000)
+            if (/^\d{4,5}(\.\d+)?$/.test(str)) {
+                const serial = parseFloat(str);
+                if (serial > 1000) {
+                    const utc_days = Math.floor(serial - 25569);
+                    const utc_value = utc_days * 86400;
+                    const date_info = new Date(utc_value * 1000);
+                    return new Date(date_info.getFullYear(), date_info.getMonth(), date_info.getDate());
+                }
+            }
+
+            // 2. ISO / YYYY-MM-DD or YYYY/MM/DD
+            if (/^\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}$/.test(str)) {
+                const [y, m, d] = str.split(/[\/\-]/).map(Number);
+                return new Date(y, m - 1, d);
+            }
+
+            // 3. Text Month Formats (e.g., "12 November 1968" or "12-Nov-1968")
+            const indonesianMonths = {
+                'jan': 0, 'januari': 0, 'feb': 1, 'februari': 1, 'mar': 2, 'maret': 2,
+                'apr': 3, 'april': 3, 'mei': 4, 'jun': 5, 'juni': 5, 'jul': 6, 'juli': 6,
+                'agt': 7, 'agust': 7, 'agustus': 7, 'sep': 8, 'september': 8,
+                'okt': 9, 'oktober': 9, 'nov': 10, 'november': 10, 'des': 11, 'desember': 11
+            };
+
+            const textMatch = str.match(/^(\d{1,2})[\s\/\-\.]+(a-zA-Z]+)[\s\/\-\.]+(\d{2,4})$/i);
+            if (textMatch) {
+                const d = parseInt(textMatch[1]);
+                const mStr = textMatch[2].toLowerCase();
+                let y = parseInt(textMatch[3]);
+                if (y < 100) y += 1900;
+                if (indonesianMonths.hasOwnProperty(mStr)) {
+                    return new Date(y, indonesianMonths[mStr], d);
+                }
+            }
+
+            // 4. DD/MM/YYYY or DD-MM-YYYY
+            const parts = str.split(/[\/\-\.]/);
+            if (parts.length === 3) {
+                let d, m, y;
+                if (parts[0].length === 4) {
+                    y = parseInt(parts[0]);
+                    m = parseInt(parts[1]) - 1;
+                    d = parseInt(parts[2]);
+                } else {
+                    d = parseInt(parts[0]);
+                    m = parseInt(parts[1]) - 1;
+                    y = parseInt(parts[2]);
+                    if (y < 100) {
+                        y = y > 30 ? 1900 + y : 2000 + y;
+                    }
+                }
+                if (!isNaN(y) && !isNaN(m) && !isNaN(d) && d > 0 && d <= 31 && m >= 0 && m < 12) {
+                    return new Date(y, m, d);
+                }
+            }
+
+            return null;
+        }
+
+        function parsePensiunDate(p) {
+            if (!p) return null;
+
+            // 1. Try TanggalPensiun direct string
+            if (p.TanggalPensiun && p.TanggalPensiun !== '-' && p.TanggalPensiun !== 'undefined') {
+                const parsed = parseDateString(p.TanggalPensiun);
+                if (parsed) return parsed;
+            }
+
+            // 2. Fallback: TanggalLahir or NIP birthdate
+            let tglLahir = parseDateString(p.TanggalLahir);
+            
+            if (!tglLahir && p.NIP) {
+                const cleanNip = p.NIP.replace(/\s+/g, '');
+                if (/^\d{8}/.test(cleanNip)) {
+                    const y = parseInt(cleanNip.substring(0, 4));
+                    const m = parseInt(cleanNip.substring(4, 6)) - 1;
+                    const d = parseInt(cleanNip.substring(6, 8));
+                    if (y > 1940 && y < 2010 && m >= 0 && m < 12 && d > 0 && d <= 31) {
+                        tglLahir = new Date(y, m, d);
+                    }
+                }
+            }
+
+            if (tglLahir) {
+                let bupYears = parseInt(p.BUP);
+                if (isNaN(bupYears) || bupYears <= 0) {
+                    bupYears = (p.Level && (p.Level.includes('Eselon II') || p.Level.includes('Utama') || p.Level.includes('Madya'))) ? 60 : 58;
+                }
+                
+                let pensiunYear = tglLahir.getFullYear() + bupYears;
+                let pensiunMonth = tglLahir.getMonth() + 1;
+                if (pensiunMonth > 11) {
+                    pensiunMonth = 0;
+                    pensiunYear++;
+                }
+                return new Date(pensiunYear, pensiunMonth, 1);
+            }
+
+            return null;
+        }
+
+        function calculateCountdown(pensiunDate) {
+            if (!pensiunDate || isNaN(pensiunDate.getTime())) {
+                return { text: "Tanggal Tidak Valid", status: "unknown", daysLeft: 99999 };
+            }
+
+            const now = new Date();
+            now.setHours(0, 0, 0, 0);
+            const target = new Date(pensiunDate);
+            target.setHours(0, 0, 0, 0);
+
+            const diffTime = target - now;
+            const totalDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+            if (totalDays < 0) {
+                return { text: "Sudah Pensiun", status: "retired", daysLeft: totalDays };
+            }
+            if (totalDays === 0) {
+                return { text: "Pensiun Hari Ini", status: "critical", daysLeft: 0, years: 0, months: 0, days: 0 };
+            }
+
+            let years = target.getFullYear() - now.getFullYear();
+            let months = target.getMonth() - now.getMonth();
+            let days = target.getDate() - now.getDate();
+
+            if (days < 0) {
+                months--;
+                const prevMonth = new Date(target.getFullYear(), target.getMonth(), 0);
+                days += prevMonth.getDate();
+            }
+            if (months < 0) {
+                years--;
+                months += 12;
+            }
+
+            const text = `${years} tahun ${months} bulan ${days} hari`;
+            let status = "normal";
+            if (totalDays <= 365) status = "critical";
+            else if (totalDays <= 730) status = "warning";
+
+            return { text, status, daysLeft: totalDays, years, months, days };
+        }
+
+        function sortTable(column) {
+            if (sortColumn === column) {
+                sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                sortColumn = column;
+                sortDirection = 'asc';
+            }
+
+            filteredPegawaiData.sort((a, b) => {
+                let valA = a[column] || '';
+                let valB = b[column] || '';
+
+                if (column === 'No') {
+                    valA = parseInt(valA) || 0;
+                    valB = parseInt(valB) || 0;
+                }
+
+                if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+                if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+                return 0;
+            });
+
+            renderTable();
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('table-body');
+            const emptyState = document.getElementById('empty-state');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            const total = filteredPegawaiData.length;
+            if (document.getElementById('showing-badge')) {
+                document.getElementById('showing-badge').textContent = `${total} Data`;
+            }
+
+            if (total === 0) {
+                if (emptyState) emptyState.classList.remove('hidden');
+                if (document.getElementById('pagination-info')) document.getElementById('pagination-info').textContent = 'Menampilkan 0 data';
+                if (document.getElementById('pagination-buttons')) document.getElementById('pagination-buttons').innerHTML = '';
+                return;
+            } else {
+                if (emptyState) emptyState.classList.add('hidden');
+            }
+
+            const startIdx = (currentPage - 1) * pageSize;
+            const endIdx = Math.min(startIdx + pageSize, total);
+            const pageData = filteredPegawaiData.slice(startIdx, endIdx);
+
+            pageData.forEach((p, index) => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50/80 dark:hover:bg-slate-700/50 transition-colors border-b border-slate-100 dark:border-slate-700/50";
+
+                const isAktif = p.StatusAktif.toLowerCase().includes('aktif') && !p.StatusAktif.toLowerCase().includes('non');
+                const badgeAktif = isAktif 
+                    ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800"><i class="fa-solid fa-circle text-[6px] mr-1 text-emerald-500"></i>${p.StatusAktif}</span>`
+                    : `<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800"><i class="fa-solid fa-circle text-[6px] mr-1 text-rose-500"></i>${p.StatusAktif}</span>`;
+
+                let badgeStatus = `<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300">${p.StatusPegawai}</span>`;
+                if (p.StatusPegawai.toUpperCase().includes('PNS')) {
+                    badgeStatus = `<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">${p.StatusPegawai}</span>`;
+                } else if (p.StatusPegawai.toUpperCase().includes('PPPK')) {
+                    badgeStatus = `<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800">${p.StatusPegawai}</span>`;
+                }
+
+                tr.innerHTML = `
+                    <td class="py-3 px-4 text-center font-medium text-slate-400">${startIdx + index + 1}</td>
+                    <td class="py-3 px-4">
+                        <div class="flex items-center gap-1.5 font-semibold text-slate-900 dark:text-white">
+                            <span>${escapeHtml(p.Nama)}</span>
+                            <button onclick="copyToClipboard('${escapeJs(p.Nama)}', 'Nama')" class="text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors" title="Salin Nama">
+                                <i class="fa-regular fa-copy text-[11px]"></i>
+                            </button>
+                        </div>
+                        <div class="text-[11px] text-slate-400 sm:hidden flex items-center gap-1 mt-0.5">
+                            <span>${escapeHtml(p.NIP)}</span>
+                            <button onclick="copyToClipboard('${escapeJs(p.NIP)}', 'NIP')" class="text-slate-400 hover:text-brand-600" title="Salin NIP">
+                                <i class="fa-regular fa-copy text-[10px]"></i>
+                            </button>
+                        </div>
+                    </td>
+                    <td class="py-3 px-4 font-mono text-[11px] text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                        <div class="flex items-center gap-1.5">
+                            <span>${escapeHtml(p.NIP)}</span>
+                            ${p.NIP && p.NIP !== '-' ? `<button onclick="copyToClipboard('${escapeJs(p.NIP)}', 'NIP')" class="text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors" title="Salin NIP"><i class="fa-regular fa-copy text-[11px]"></i></button>` : ''}
+                        </div>
+                    </td>
+                    <td class="py-3 px-4">
+                        <div class="font-medium text-slate-800 dark:text-slate-200">${escapeHtml(p.Jabatan)}</div>
+                        <div class="text-[11px] text-slate-400">${escapeHtml(p.Pangkat)}</div>
+                    </td>
+                    <td class="py-3 px-4">
+                        <div class="font-medium text-slate-800 dark:text-slate-200">${escapeHtml(p.Bidang)}</div>
+                        <div class="text-[11px] text-slate-400">${escapeHtml(p.Tim)}</div>
+                    </td>
+                    <td class="py-3 px-4">${badgeStatus}</td>
+                    <td class="py-3 px-4 text-center">${badgeAktif}</td>
+                    <td class="py-3 px-4 text-center text-slate-600 dark:text-slate-400 whitespace-nowrap">${escapeHtml(p.TanggalPensiun)}</td>
+                    <td class="py-3 px-4 text-center">
+                        <button onclick="openDetailModal(${startIdx + index})" class="p-1.5 rounded-lg text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-900/40 transition-colors" title="Lihat Detail">
+                            <i class="fa-solid fa-eye text-sm"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            renderPagination(total, startIdx + 1, endIdx);
+        }
+
+        function renderPagination(total, from, to) {
+            if (document.getElementById('pagination-info')) document.getElementById('pagination-info').textContent = `Menampilkan ${from}-${to} dari ${total} data`;
+            const totalPages = Math.ceil(total / pageSize);
+            const container = document.getElementById('pagination-buttons');
+            if (!container) return;
+            container.innerHTML = '';
+
+            if (totalPages <= 1) return;
+
+            const prevBtn = document.createElement('button');
+            prevBtn.className = `px-2.5 py-1 rounded-lg border text-xs font-medium ${currentPage === 1 ? 'border-slate-200 dark:border-slate-700 text-slate-300 dark:text-slate-600' : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`;
+            prevBtn.innerHTML = `<i class="fa-solid fa-chevron-left"></i>`;
+            prevBtn.disabled = currentPage === 1;
+            prevBtn.onclick = () => { if (currentPage > 1) { currentPage--; renderTable(); } };
+            container.appendChild(prevBtn);
+
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
+                    const btn = document.createElement('button');
+                    btn.className = `px-2.5 py-1 rounded-lg border text-xs font-medium ${i === currentPage ? 'bg-brand-600 border-brand-600 text-white' : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`;
+                    btn.textContent = i;
+                    btn.onclick = () => { currentPage = i; renderTable(); };
+                    container.appendChild(btn);
+                } else if (i === currentPage - 2 || i === currentPage + 2) {
+                    const dots = document.createElement('span');
+                    dots.className = 'px-1 text-slate-400 text-xs';
+                    dots.textContent = '...';
+                    container.appendChild(dots);
+                }
+            }
+
+            const nextBtn = document.createElement('button');
+            nextBtn.className = `px-2.5 py-1 rounded-lg border text-xs font-medium ${currentPage === totalPages ? 'border-slate-200 dark:border-slate-700 text-slate-300 dark:text-slate-600' : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`;
+            nextBtn.innerHTML = `<i class="fa-solid fa-chevron-right"></i>`;
+            nextBtn.disabled = currentPage === totalPages;
+            nextBtn.onclick = () => { if (currentPage < totalPages) { currentPage++; renderTable(); } };
+            container.appendChild(nextBtn);
+        }
+
+        function changePageSize() {
+            pageSize = parseInt(document.getElementById('page-size').value);
+            currentPage = 1;
+            renderTable();
+        }
+
+        const JABATAN_CATEGORIES = [
+            { id: '0', title: '0 - Kadis/Sekdis', color: 'bg-rose-500', badgeClass: 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-200' },
+            { id: '1', title: '1 - Kepala Bidang', color: 'bg-indigo-500', badgeClass: 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border-indigo-200' },
+            { id: '2', title: '2 - Ketua Tim / Kasubag / kasubag tu / kepala upt', color: 'bg-sky-500', badgeClass: 'bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border-sky-200' },
+            { id: '3', title: '3 - Anggota (PNS)', color: 'bg-emerald-500', badgeClass: 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200' },
+            { id: '4', title: '4 - Anggota (PPPK)', color: 'bg-amber-500', badgeClass: 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200' },
+            { id: '5', title: '5 - Anggota (PPPK PW)', color: 'bg-teal-500', badgeClass: 'bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border-teal-200' },
+            { id: '6', title: '6 - Anggota (OS)', color: 'bg-purple-500', badgeClass: 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border-purple-200' }
+        ];
+
+        function selectJabatanCategory(catId) {
+            selectedJabatanCategory = catId;
+            renderJabatanView();
+        }
+
+        function getJabatanCategory(p) {
+            const levelStr = String(p.Level || '').trim().toLowerCase();
+            const jabatanStr = String(p.Jabatan || '').trim().toLowerCase();
+            const statusStr = String(p.StatusPegawai || '').trim().toLowerCase();
+
+            // Match exact prefix like "0 -", "1 -", etc.
+            for (const cat of JABATAN_CATEGORIES) {
+                if (levelStr.startsWith(cat.id + ' ') || levelStr.startsWith(cat.id + '-') || levelStr === cat.id) {
+                    return cat.title;
+                }
+            }
+
+            // Keyword matching in Level
+            if (levelStr.includes('kadis') || levelStr.includes('sekdis')) return JABATAN_CATEGORIES[0].title;
+            if (levelStr.includes('kepala bidang') || levelStr.includes('kabid')) return JABATAN_CATEGORIES[1].title;
+            if (levelStr.includes('ketua tim') || levelStr.includes('kasubag') || levelStr.includes('upt')) return JABATAN_CATEGORIES[2].title;
+            if (levelStr.includes('pppk pw') || levelStr.includes('pw')) return JABATAN_CATEGORIES[5].title;
+            if (levelStr.includes('pppk')) return JABATAN_CATEGORIES[4].title;
+            if (levelStr.includes('os') || levelStr.includes('ppnpn') || levelStr.includes('outsourcing') || levelStr.includes('non-asn')) return JABATAN_CATEGORIES[6].title;
+            if (levelStr.includes('pns')) return JABATAN_CATEGORIES[3].title;
+
+            // Fallback matching in Jabatan / Status
+            if (jabatanStr.includes('kepala dinas') || jabatanStr.includes('sekretaris dinas') || jabatanStr.includes('kadis') || jabatanStr.includes('sekdis')) return JABATAN_CATEGORIES[0].title;
+            if (jabatanStr.includes('kepala bidang') || jabatanStr.includes('kabid')) return JABATAN_CATEGORIES[1].title;
+            if (jabatanStr.includes('ketua tim') || jabatanStr.includes('kasubag') || jabatanStr.includes('kepala upt')) return JABATAN_CATEGORIES[2].title;
+
+            if (statusStr.includes('pppk') && (statusStr.includes('pw') || jabatanStr.includes('pw'))) return JABATAN_CATEGORIES[5].title;
+            if (statusStr.includes('pppk')) return JABATAN_CATEGORIES[4].title;
+            if (statusStr.includes('os') || statusStr.includes('ppnpn') || statusStr.includes('non') || statusStr.includes('honorer')) return JABATAN_CATEGORIES[6].title;
+            if (statusStr.includes('pns')) return JABATAN_CATEGORIES[3].title;
+
+            return JABATAN_CATEGORIES[3].title;
+        }
+
+        function renderJabatanView() {
+            const summaryContainer = document.getElementById('jabatan-summary-bar');
+            const tableCard = document.getElementById('jabatan-table-card');
+            if (!summaryContainer || !tableCard) return;
+
+            const search = (document.getElementById('jabatan-search')?.value || '').toLowerCase();
+
+            // Group data by Jabatan Category
+            const grouped = {};
+            JABATAN_CATEGORIES.forEach(cat => grouped[cat.title] = []);
+
+            rawPegawaiData.forEach(p => {
+                const catTitle = getJabatanCategory(p);
+                if (grouped[catTitle]) {
+                    grouped[catTitle].push(p);
+                } else {
+                    grouped[JABATAN_CATEGORIES[3].title].push(p);
+                }
+            });
+
+            // Summary cards list including 'Semua Level'
+            const allCategoryCards = [
+                { id: 'all', title: 'Semua Level', color: 'bg-brand-600', badgeClass: 'bg-brand-50 dark:bg-brand-900/50 text-brand-700 dark:text-brand-300 border-brand-200' },
+                ...JABATAN_CATEGORIES
+            ];
+
+            // Render Interactive Cards
+            summaryContainer.innerHTML = allCategoryCards.map(cat => {
+                let count = 0;
+                if (cat.id === 'all') {
+                    count = rawPegawaiData.length;
+                } else {
+                    count = (grouped[cat.title] || []).length;
+                }
+
+                const isActive = selectedJabatanCategory === cat.id;
+                const activeStyle = isActive 
+                    ? 'ring-2 ring-brand-500 border-brand-500 bg-brand-50/60 dark:bg-brand-950/50 shadow-md scale-[1.02]' 
+                    : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600';
+
+                return `
+                    <button onclick="selectJabatanCategory('${cat.id}')" class="text-left rounded-2xl p-3 border transition-all cursor-pointer flex items-center space-x-2.5 ${activeStyle}">
+                        <div class="w-3 h-8 rounded-full ${cat.color} shrink-0"></div>
+                        <div class="overflow-hidden">
+                            <p class="text-[10px] font-bold ${isActive ? 'text-brand-700 dark:text-brand-300' : 'text-slate-400'} uppercase truncate" title="${escapeHtml(cat.title)}">${escapeHtml(cat.title)}</p>
+                            <h4 class="text-lg font-extrabold text-slate-900 dark:text-white leading-tight">${count}</h4>
+                        </div>
+                    </button>
+                `;
+            }).join('');
+
+            // Determine data to show in single table
+            let displayMembers = [];
+            let activeCatTitle = "Semua Level / Jabatan";
+            let activeBadgeClass = "bg-brand-50 dark:bg-brand-900/50 text-brand-700 dark:text-brand-300 border-brand-200";
+
+            if (selectedJabatanCategory === 'all') {
+                displayMembers = [...rawPegawaiData];
+            } else {
+                const foundCat = JABATAN_CATEGORIES.find(c => c.id === selectedJabatanCategory);
+                if (foundCat) {
+                    activeCatTitle = foundCat.title;
+                    activeBadgeClass = foundCat.badgeClass;
+                    displayMembers = grouped[foundCat.title] || [];
+                }
+            }
+
+            // Apply search filter
+            if (search) {
+                displayMembers = displayMembers.filter(p => 
+                    p.Nama.toLowerCase().includes(search) ||
+                    p.NIP.toLowerCase().includes(search) ||
+                    p.Jabatan.toLowerCase().includes(search) ||
+                    p.Bidang.toLowerCase().includes(search) ||
+                    p.Level.toLowerCase().includes(search)
+                );
+            }
+
+            const rowsHtml = displayMembers.length > 0 ? displayMembers.map((p, idx) => `
+                <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-700/50 border-b border-slate-100 dark:border-slate-700/50">
+                    <td class="py-3 px-4 text-center text-slate-400 font-medium">${idx + 1}</td>
+                    <td class="py-3 px-4">
+                        <div class="flex items-center gap-1.5 font-bold text-slate-900 dark:text-white">
+                            <span>${escapeHtml(p.Nama)}</span>
+                            <button onclick="copyToClipboard('${escapeJs(p.Nama)}', 'Nama')" class="text-slate-400 hover:text-brand-600 dark:hover:text-brand-400" title="Salin Nama">
+                                <i class="fa-regular fa-copy text-xs"></i>
+                            </button>
+                        </div>
+                    </td>
+                    <td class="py-3 px-4 font-mono text-[11px] text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                        <div class="flex items-center gap-1.5">
+                            <span>${escapeHtml(p.NIP)}</span>
+                            ${p.NIP && p.NIP !== '-' ? `<button onclick="copyToClipboard('${escapeJs(p.NIP)}', 'NIP')" class="text-slate-400 hover:text-brand-600 dark:hover:text-brand-400" title="Salin NIP"><i class="fa-regular fa-copy text-xs"></i></button>` : ''}
+                        </div>
+                    </td>
+                    <td class="py-3 px-4 font-medium text-slate-800 dark:text-slate-200">${escapeHtml(p.Jabatan)}</td>
+                    <td class="py-3 px-4 text-slate-600 dark:text-slate-400">${escapeHtml(p.Bidang)}</td>
+                    <td class="py-3 px-4 text-slate-600 dark:text-slate-400">${escapeHtml(p.Level)}</td>
+                    <td class="py-3 px-4 text-center">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300">${escapeHtml(p.StatusPegawai)}</span>
+                    </td>
+                    <td class="py-3 px-4 text-center">
+                        <button onclick="openDetailModalByData('${escapeJs(p.NIP)}')" class="p-1.5 rounded-lg text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-900/40">
+                            <i class="fa-solid fa-eye text-sm"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('') : `
+                <tr>
+                    <td colspan="8" class="py-8 text-center text-slate-400 text-xs">Tidak ada data pegawai yang sesuai.</td>
+                </tr>
+            `;
+
+            tableCard.innerHTML = `
+                <div class="px-5 py-4 border-b border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50 dark:bg-slate-800/50">
+                    <div class="flex items-center space-x-3">
+                        <i class="fa-solid fa-list-check text-brand-600"></i>
+                        <h3 class="font-bold text-slate-900 dark:text-white text-sm sm:text-base">${escapeHtml(activeCatTitle)}</h3>
+                    </div>
+                    <span class="px-3 py-1 rounded-full text-xs font-bold ${activeBadgeClass} border w-fit">
+                        ${displayMembers.length} Pegawai
+                    </span>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead>
+                            <tr class="bg-slate-100/80 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 font-semibold uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">
+                                <th class="py-3 px-4 w-12 text-center">No</th>
+                                <th class="py-3 px-4">Nama</th>
+                                <th class="py-3 px-4">NIP</th>
+                                <th class="py-3 px-4">Jabatan</th>
+                                <th class="py-3 px-4">Bidang</th>
+                                <th class="py-3 px-4">Level</th>
+                                <th class="py-3 px-4 text-center">Status</th>
+                                <th class="py-3 px-4 text-center w-16">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 dark:divide-slate-700 text-slate-700 dark:text-slate-200">
+                            ${rowsHtml}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        function renderBidangView() {
+            const container = document.getElementById('bidang-cards-container');
+            if (!container) return;
+            const search = (document.getElementById('bidang-search')?.value || '').toLowerCase();
+            container.innerHTML = '';
+
+            const bidangMap = {};
+            rawPegawaiData.forEach(p => {
+                const b = p.Bidang && p.Bidang !== '-' ? p.Bidang : 'Lainnya';
+                if (!bidangMap[b]) bidangMap[b] = [];
+                bidangMap[b].push(p);
+            });
+
+            const keys = Object.keys(bidangMap).filter(k => k.toLowerCase().includes(search));
+
+            if (keys.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full p-8 bg-white dark:bg-slate-800 rounded-2xl text-center text-slate-500">
+                        Tidak ada data bidang yang cocok.
+                    </div>
+                `;
+                return;
+            }
+
+            keys.forEach((bidangName, idx) => {
+                const members = bidangMap[bidangName];
+                const activeCount = members.filter(m => m.StatusAktif.toLowerCase().includes('aktif') && !m.StatusAktif.toLowerCase().includes('non')).length;
+
+                const card = document.createElement('div');
+                card.className = "bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm space-y-4";
+
+                let membersListHtml = members.map((m, mIdx) => `
+                    <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-700/40 border border-slate-100 dark:border-slate-700/60 text-xs hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                        <div class="flex items-center space-x-2.5">
+                            <span class="w-5 text-slate-400 font-semibold text-center text-[11px]">${mIdx + 1}</span>
+                            <div>
+                                <div class="font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                                    <span>${escapeHtml(m.Nama)}</span>
+                                    <button onclick="copyToClipboard('${escapeJs(m.Nama)}', 'Nama')" class="text-slate-400 hover:text-brand-600 dark:hover:text-brand-400" title="Salin Nama">
+                                        <i class="fa-regular fa-copy text-[10px]"></i>
+                                    </button>
+                                </div>
+                                <div class="text-[10px] text-slate-400 flex items-center gap-1.5 mt-0.5">
+                                    <span>${escapeHtml(m.Jabatan)} • NIP: ${escapeHtml(m.NIP)}</span>
+                                    ${m.NIP && m.NIP !== '-' ? `<button onclick="copyToClipboard('${escapeJs(m.NIP)}', 'NIP')" class="text-slate-400 hover:text-brand-600" title="Salin NIP"><i class="fa-regular fa-copy text-[10px]"></i></button>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-medium ${m.StatusPegawai.toUpperCase().includes('PNS') ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300' : 'bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-300'}">${escapeHtml(m.StatusPegawai)}</span>
+                    </div>
+                `).join('');
+
+                card.innerHTML = `
+                    <div class="flex items-start justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-900/50 text-brand-600 dark:text-brand-400 flex items-center justify-center font-bold text-lg">
+                                <i class="fa-solid fa-sitemap"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-slate-900 dark:text-white text-sm sm:text-base">${escapeHtml(bidangName)}</h3>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">${members.length} Total Pegawai (${activeCount} Aktif)</p>
+                            </div>
+                        </div>
+                        <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-brand-50 dark:bg-brand-900/50 text-brand-700 dark:text-brand-300 border border-brand-200 dark:border-brand-800">
+                            ${members.length} Orang
+                        </span>
+                    </div>
+
+                    <div class="space-y-2 max-h-72 overflow-y-auto pr-1">
+                        ${membersListHtml}
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function renderPensiunView() {
+            const tbody = document.getElementById('pensiun-table-body');
+            const emptyMsg = document.getElementById('pensiun-empty');
+            const filterKriteria = document.getElementById('filter-pensiun-kriteria')?.value || 'all';
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            const pensiunList = rawPegawaiData.map(p => {
+                const dateObj = parsePensiunDate(p);
+                const countdown = calculateCountdown(dateObj);
+                return { ...p, dateObj, countdown };
+            }).filter(p => p.dateObj !== null);
+
+            pensiunList.sort((a, b) => a.countdown.daysLeft - b.countdown.daysLeft);
+
+            const filteredList = pensiunList.filter(p => {
+                if (filterKriteria === '1year') return p.countdown.status === 'critical';
+                if (filterKriteria === '2year') return p.countdown.status === 'warning';
+                if (filterKriteria === 'retired') return p.countdown.status === 'retired';
+                return true;
+            });
+
+            if (filteredList.length === 0) {
+                if (emptyMsg) emptyMsg.classList.remove('hidden');
+                return;
+            } else {
+                if (emptyMsg) emptyMsg.classList.add('hidden');
+            }
+
+            filteredList.forEach((p, index) => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50/80 dark:hover:bg-slate-700/50 border-b border-slate-100 dark:border-slate-700/50";
+
+                let countdownBadge = `<span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300">${p.countdown.text}</span>`;
+                if (p.countdown.status === 'critical') {
+                    countdownBadge = `<span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800"><i class="fa-solid fa-clock mr-1.5 text-rose-500 animate-pulse"></i>${p.countdown.text}</span>`;
+                } else if (p.countdown.status === 'warning') {
+                    countdownBadge = `<span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800"><i class="fa-solid fa-triangle-exclamation mr-1.5 text-amber-500"></i>${p.countdown.text}</span>`;
+                } else if (p.countdown.status === 'retired') {
+                    countdownBadge = `<span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400"><i class="fa-solid fa-check mr-1.5"></i>Sudah Pensiun</span>`;
+                }
+
+                let displayPensiunDate = p.TanggalPensiun && p.TanggalPensiun !== '-' 
+                    ? p.TanggalPensiun 
+                    : p.dateObj.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+                tr.innerHTML = `
+                    <td class="py-3.5 px-4 text-center font-medium text-slate-400">${index + 1}</td>
+                    <td class="py-3.5 px-4">
+                        <div class="flex items-center gap-1.5 font-bold text-slate-900 dark:text-white">
+                            <span>${escapeHtml(p.Nama)}</span>
+                            <button onclick="copyToClipboard('${escapeJs(p.Nama)}', 'Nama')" class="text-slate-400 hover:text-brand-600 dark:hover:text-brand-400" title="Salin Nama">
+                                <i class="fa-regular fa-copy text-xs"></i>
+                            </button>
+                        </div>
+                        <div class="font-mono text-[11px] text-slate-400 flex items-center gap-1.5 mt-0.5">
+                            <span>NIP: ${escapeHtml(p.NIP)}</span>
+                            ${p.NIP && p.NIP !== '-' ? `<button onclick="copyToClipboard('${escapeJs(p.NIP)}', 'NIP')" class="text-slate-400 hover:text-brand-600" title="Salin NIP"><i class="fa-regular fa-copy text-[10px]"></i></button>` : ''}
+                        </div>
+                    </td>
+                    <td class="py-3.5 px-4">
+                        <div class="font-medium text-slate-800 dark:text-slate-200">${escapeHtml(p.Jabatan)}</div>
+                        <div class="text-[11px] text-slate-400">${escapeHtml(p.Bidang)}</div>
+                    </td>
+                    <td class="py-3.5 px-4 text-center whitespace-nowrap">
+                        <div class="text-slate-700 dark:text-slate-300 font-medium">${escapeHtml(p.TanggalLahir)}</div>
+                        <div class="text-[10px] text-slate-400">BUP: ${escapeHtml(p.BUP)} Thn</div>
+                    </td>
+                    <td class="py-3.5 px-4 text-center font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap">
+                        ${escapeHtml(displayPensiunDate)}
+                    </td>
+                    <td class="py-3.5 px-4 text-center whitespace-nowrap">
+                        ${countdownBadge}
+                    </td>
+                    <td class="py-3.5 px-4 text-center">
+                        <button onclick="openDetailModalByData('${escapeJs(p.NIP)}')" class="p-1.5 rounded-lg text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-900/40">
+                            <i class="fa-solid fa-eye text-sm"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderWidgets() {
+            const bidangCounts = {};
+            rawPegawaiData.forEach(p => {
+                const b = p.Bidang || 'Lainnya';
+                bidangCounts[b] = (bidangCounts[b] || 0) + 1;
+            });
+            const sortedBidang = Object.entries(bidangCounts).sort((a,b) => a[0].localeCompare(b[0]));
+
+            const topBidangContainer = document.getElementById('widget-top-bidang');
+            if (topBidangContainer) {
+                if (sortedBidang.length === 0) {
+                    topBidangContainer.innerHTML = '<p class="text-slate-400">Tidak ada data bidang.</p>';
+                } else {
+                    topBidangContainer.innerHTML = sortedBidang.map(([name, count]) => `
+                        <div class="flex items-center justify-between p-2 rounded-xl bg-slate-50 dark:bg-slate-700/40 hover:bg-slate-100 dark:hover:bg-slate-700/60 transition-colors">
+                            <span class="font-medium text-slate-700 dark:text-slate-300 truncate max-w-[200px]" title="${escapeHtml(name)}">${escapeHtml(name)}</span>
+                            <span class="font-bold text-brand-600 dark:text-brand-400 whitespace-nowrap ml-2">${count} Pegawai</span>
+                        </div>
+                    `).join('');
+                }
+            }
+
+            const levelCounts = {};
+            rawPegawaiData.forEach(p => {
+                const l = p.Level && p.Level !== '-' ? p.Level : 'Lainnya / Staff';
+                levelCounts[l] = (levelCounts[l] || 0) + 1;
+            });
+            const widgetLevel = document.getElementById('widget-level');
+            if (widgetLevel) {
+                widgetLevel.innerHTML = Object.entries(levelCounts).map(([lvl, cnt]) => `
+                    <div class="flex items-center justify-between p-2 rounded-xl bg-slate-50 dark:bg-slate-700/40">
+                        <span class="font-medium text-slate-700 dark:text-slate-300">${escapeHtml(lvl)}</span>
+                        <span class="font-bold text-slate-900 dark:text-white">${cnt}</span>
+                    </div>
+                `).join('');
+            }
+
+            const pensiunList = rawPegawaiData.map(p => ({
+                ...p,
+                dateObj: parsePensiunDate(p),
+                countdown: calculateCountdown(parsePensiunDate(p))
+            })).filter(p => p.dateObj !== null && p.countdown.daysLeft > 0)
+              .sort((a,b) => a.countdown.daysLeft - b.countdown.daysLeft).slice(0, 3);
+
+            const widgetPensiun = document.getElementById('widget-pensiun-terdekat');
+            if (widgetPensiun) {
+                widgetPensiun.innerHTML = pensiunList.map(p => `
+                    <div class="p-2.5 rounded-xl bg-rose-50/60 dark:bg-rose-950/40 border border-rose-100 dark:border-rose-900/50 flex items-center justify-between">
+                        <div>
+                            <div class="font-bold text-slate-900 dark:text-white text-xs">${escapeHtml(p.Nama)}</div>
+                            <div class="text-[10px] text-slate-500 dark:text-slate-400">${escapeHtml(p.Jabatan)}</div>
+                        </div>
+                        <span class="text-[11px] font-bold text-rose-600 dark:text-rose-400">${p.countdown.text}</span>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function renderKPIs() {
+            const total = rawPegawaiData.length;
+            const aktif = rawPegawaiData.filter(p => p.StatusAktif.toLowerCase().includes('aktif') && !p.StatusAktif.toLowerCase().includes('non')).length;
+            const nonAktif = total - aktif;
+            const pns = rawPegawaiData.filter(p => p.StatusPegawai.toUpperCase().includes('PNS')).length;
+            const nonPns = total - pns;
+
+            const mendekatiPensiun = rawPegawaiData.filter(p => {
+                const dateObj = parsePensiunDate(p);
+                if (!dateObj) return false;
+                const cd = calculateCountdown(dateObj);
+                return cd.daysLeft > 0 && cd.daysLeft <= 730;
+            }).length;
+
+            if (document.getElementById('kpi-total')) document.getElementById('kpi-total').textContent = total;
+            if (document.getElementById('kpi-aktif')) document.getElementById('kpi-aktif').textContent = aktif;
+            if (document.getElementById('kpi-nonaktif-sub')) document.getElementById('kpi-nonaktif-sub').textContent = `${nonAktif} Non-Aktif`;
+            if (document.getElementById('kpi-pns')) document.getElementById('kpi-pns').textContent = pns;
+            if (document.getElementById('kpi-nonpns-sub')) document.getElementById('kpi-nonpns-sub').textContent = `${nonPns} PPPK / Non-PNS`;
+            if (document.getElementById('kpi-pensiun')) document.getElementById('kpi-pensiun').textContent = mendekatiPensiun;
+        }
+
+        function renderCharts() {
+            const isDark = document.documentElement.classList.contains('dark');
+            const textColor = isDark ? '#f1f5f9' : '#334155';
+
+            const bidangCounts = {};
+            rawPegawaiData.forEach(p => {
+                const b = p.Bidang || 'Lainnya';
+                bidangCounts[b] = (bidangCounts[b] || 0) + 1;
+            });
+
+            const canvasBidang = document.getElementById('chart-bidang');
+            if (canvasBidang) {
+                const ctxBidang = canvasBidang.getContext('2d');
+                if (chartBidangInstance) chartBidangInstance.destroy();
+
+                chartBidangInstance = new Chart(ctxBidang, {
+                    type: 'doughnut',
+                    data: {
+                        labels: Object.keys(bidangCounts),
+                        datasets: [{
+                            data: Object.values(bidangCounts),
+                            backgroundColor: ['#0284c7', '#6366f1', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#64748b'],
+                            borderWidth: 2,
+                            borderColor: isDark ? '#1e293b' : '#ffffff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom', labels: { color: textColor, font: { size: 10 } } }
+                        }
+                    }
+                });
+            }
+
+            const statusCounts = {};
+            rawPegawaiData.forEach(p => {
+                const s = p.StatusPegawai || 'Lainnya';
+                statusCounts[s] = (statusCounts[s] || 0) + 1;
+            });
+
+            const canvasStatus = document.getElementById('chart-status');
+            if (canvasStatus) {
+                const ctxStatus = canvasStatus.getContext('2d');
+                if (chartStatusInstance) chartStatusInstance.destroy();
+
+                chartStatusInstance = new Chart(ctxStatus, {
+                    type: 'bar',
+                    data: {
+                        labels: Object.keys(statusCounts),
+                        datasets: [{
+                            label: 'Jumlah Pegawai',
+                            data: Object.values(statusCounts),
+                            backgroundColor: '#6366f1',
+                            borderRadius: 8
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: { ticks: { color: textColor } },
+                            y: { ticks: { color: textColor, stepSize: 1 }, beginAtZero: true }
+                        },
+                        plugins: { legend: { display: false } }
+                    }
+                });
+            }
+        }
+
+        function openDetailModal(index) {
+            const p = filteredPegawaiData[index];
+            if (!p) return;
+
+            document.getElementById('detail-nama').textContent = p.Nama;
+            document.getElementById('detail-nip').textContent = `NIP: ${p.NIP}`;
+            document.getElementById('detail-avatar').textContent = p.Nama.substring(0, 2).toUpperCase();
+            document.getElementById('detail-jabatan').textContent = p.Jabatan;
+            document.getElementById('detail-pangkat').textContent = p.Pangkat;
+            document.getElementById('detail-status-pegawai').textContent = p.StatusPegawai;
+            document.getElementById('detail-status-aktif').textContent = p.StatusAktif;
+            document.getElementById('detail-bidang').textContent = p.Bidang;
+            document.getElementById('detail-tim').textContent = p.Tim;
+            document.getElementById('detail-level').textContent = p.Level;
+            document.getElementById('detail-tgl-lahir').textContent = p.TanggalLahir;
+            document.getElementById('detail-bup').textContent = `${p.BUP} Tahun`;
+            document.getElementById('detail-tgl-pensiun').textContent = p.TanggalPensiun;
+            document.getElementById('detail-keterangan').textContent = p.Keterangan;
+
+            document.getElementById('copy-detail-nama').onclick = () => copyToClipboard(p.Nama, 'Nama');
+            document.getElementById('copy-detail-nip').onclick = () => copyToClipboard(p.NIP, 'NIP');
+
+            document.getElementById('modal-detail').classList.remove('hidden');
+        }
+
+        function openDetailModalByData(nip) {
+            const p = rawPegawaiData.find(x => x.NIP === nip);
+            if (!p) return;
+            const idx = filteredPegawaiData.findIndex(x => x.NIP === nip);
+            if (idx !== -1) openDetailModal(idx);
+            else {
+                filteredPegawaiData = [p];
+                openDetailModal(0);
+            }
+        }
+
+        function closeDetailModal() {
+            document.getElementById('modal-detail').classList.add('hidden');
+        }
+
+        async function copyToClipboard(text, label = 'Data') {
+            if (!text || text === '-' || text === 'undefined') {
+                showToast("Tidak ada data untuk disalin.");
+                return;
+            }
+            
+            let success = false;
+
+            // Method 1: Clipboard API
+            if (navigator.clipboard && window.isSecureContext) {
+                try {
+                    await navigator.clipboard.writeText(text);
+                    success = true;
+                } catch (err) {
+                    console.warn("Clipboard API failed, fallback to execCommand", err);
+                }
+            }
+
+            // Method 2: execCommand fallback
+            if (!success) {
+                try {
+                    const tempInput = document.createElement('textarea');
+                    tempInput.value = text;
+                    tempInput.style.position = 'fixed';
+                    tempInput.style.left = '-9999px';
+                    tempInput.style.top = '0';
+                    tempInput.setAttribute('readonly', '');
+                    document.body.appendChild(tempInput);
+                    
+                    tempInput.focus();
+                    tempInput.select();
+                    tempInput.setSelectionRange(0, 99999);
+                    
+                    success = document.execCommand('copy');
+                    document.body.removeChild(tempInput);
+                } catch (err) {
+                    console.error("execCommand failed", err);
+                }
+            }
+
+            if (success) {
+                showToast(`${label} (${text}) berhasil disalin!`);
+            } else {
+                prompt(`Salin ${label} secara manual:`, text);
+            }
+        }
+
+        function escapeJs(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/\\/g, '\\\\')
+                .replace(/'/g, "\\'")
+                .replace(/"/g, '&quot;')
+                .replace(/\n/g, '\\n');
+        }
+
+        function exportToExcel() {
+            if (!filteredPegawaiData || filteredPegawaiData.length === 0) {
+                showToast("Tidak ada data untuk diekspor.");
+                return;
+            }
+
+            const exportData = filteredPegawaiData.map((p, i) => ({
+                "No": i + 1,
+                "Nama": p.Nama,
+                "NIP": p.NIP,
+                "Pangkat/Gol": p.Pangkat,
+                "Jabatan": p.Jabatan,
+                "Status Kepegawaian": p.StatusPegawai,
+                "Bidang": p.Bidang,
+                "Tim": p.Tim,
+                "Status Aktif": p.StatusAktif,
+                "Keterangan": p.Keterangan,
+                "Level": p.Level,
+                "Tanggal Lahir": p.TanggalLahir,
+                "BUP": p.BUP,
+                "Tanggal Pensiun": p.TanggalPensiun
+            }));
+
+            const worksheet = XLSX.utils.json_to_sheet(exportData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Data Pegawai");
+            XLSX.writeFile(workbook, `Data_Pegawai_Export_${new Date().toISOString().slice(0,10)}.xlsx`);
+            showToast("Export Excel berhasil di-download.");
+        }
+
+        function showLoading(show) {
+            const spinner = document.getElementById('loading-spinner');
+            if (spinner) {
+                if (show) spinner.classList.remove('hidden');
+                else spinner.classList.add('hidden');
+            }
+        }
+
+        function updateSyncStatus(connected) {
+            const statusEl = document.getElementById('sync-status');
+            if (!statusEl) return;
+            if (connected) {
+                statusEl.innerHTML = `<span class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span> <span>Terhubung Google Sheets</span>`;
+            } else {
+                statusEl.innerHTML = `<span class="inline-block w-2 h-2 rounded-full bg-amber-500"></span> <span>Mode Sampel / File Lokal</span>`;
+            }
+        }
+
+        function showAlert(title, desc) {
+            if (document.getElementById('alert-title')) document.getElementById('alert-title').textContent = title;
+            if (document.getElementById('alert-desc')) document.getElementById('alert-desc').textContent = desc;
+            if (document.getElementById('connection-alert')) document.getElementById('connection-alert').classList.remove('hidden');
+        }
+
+        function closeAlert() {
+            if (document.getElementById('connection-alert')) document.getElementById('connection-alert').classList.add('hidden');
+        }
+
+        function showToast(text) {
+            const toast = document.getElementById('toast-message');
+            if (!toast) return;
+            document.getElementById('toast-text').textContent = text;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 3500);
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '-';
+            return String(str)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
