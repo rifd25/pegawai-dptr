@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Data Pegawai</title>
+    <!-- Favicon SVG dengan ikon ID Card -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230284c7'><path d='M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm6 12H6v-1c0-2 4-3.1 6-3.1s6 1.1 6 3.1v1z'/></svg>">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
@@ -74,7 +76,9 @@
                         <i class="fa-solid fa-id-card text-lg"></i>
                     </div>
                     <div>
-                        <h1 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white leading-tight">Dashboard Data Pegawai</h1>
+                        <h1 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white leading-tight flex items-center gap-2">
+                            <span>Dashboard Data Pegawai</span>
+                        </h1>
                         <p class="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5" id="sync-status">
                             <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                             <span>Menghubungkan Data...</span>
@@ -98,11 +102,15 @@
                 </div>
             </div>
 
-            <!-- Navigation Tabs Bar -->
+            <!-- Navigation Tabs Bar dengan Ikon Lengkap -->
             <nav class="flex space-x-1 sm:space-x-2 border-t border-slate-100 dark:border-slate-700/50 overflow-x-auto py-2 scrollbar-none" id="main-nav">
                 <button onclick="switchTab('dashboard')" id="tab-dashboard" class="nav-tab inline-flex items-center px-3.5 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap bg-brand-50 dark:bg-brand-900/40 text-brand-700 dark:text-brand-300">
                     <i class="fa-solid fa-chart-pie mr-2"></i>
                     Dashboard
+                </button>
+                <button onclick="switchTab('pegawai')" id="tab-pegawai" class="nav-tab inline-flex items-center px-3.5 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
+                    <i class="fa-solid fa-users mr-2"></i>
+                    Data Pegawai
                 </button>
                 <button onclick="switchTab('jabatan')" id="tab-jabatan" class="nav-tab inline-flex items-center px-3.5 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
                     <i class="fa-solid fa-briefcase mr-2"></i>
@@ -111,10 +119,6 @@
                 <button onclick="switchTab('bidang')" id="tab-bidang" class="nav-tab inline-flex items-center px-3.5 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
                     <i class="fa-solid fa-sitemap mr-2"></i>
                     Data Per Bidang
-                </button>
-                <button onclick="switchTab('pegawai')" id="tab-pegawai" class="nav-tab inline-flex items-center px-3.5 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
-                    <i class="fa-solid fa-users mr-2"></i>
-                    Data Pegawai
                 </button>
                 <button onclick="switchTab('pensiun')" id="tab-pensiun" class="nav-tab inline-flex items-center px-3.5 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
                     <i class="fa-solid fa-user-clock mr-2"></i>
@@ -146,9 +150,34 @@
         </div>
 
         <!-- ========================================== -->
-        <!-- VIEW 1: DASHBOARD OVERVIEW -->
+        <!-- VIEW 1: DASHBOARD OVERVIEW (MENU UTAMA)    -->
         <!-- ========================================== -->
         <div id="view-dashboard" class="space-y-6">
+
+            <!-- Quick Search Bar Form (Di Atas Total Pegawai) -->
+            <section class="bg-gradient-to-r from-brand-600 to-indigo-700 rounded-2xl p-6 text-white shadow-md">
+                <div class="max-w-3xl space-y-3">
+                    <h2 class="text-lg sm:text-xl font-bold flex items-center gap-2">
+                        <i class="fa-solid fa-magnifying-glass text-brand-200"></i>
+                        Pencarian Cepat Pegawai
+                    </h2>
+                    <p class="text-xs sm:text-sm text-brand-100">Masukkan Nama, NIP, Jabatan, atau Tim untuk mencari pegawai secara instan. Hasil akan otomatis ditampilkan pada menu Data Pegawai.</p>
+                    
+                    <form onsubmit="handleDashboardSearch(event)" class="pt-1">
+                        <div class="relative flex items-center">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                                <i class="fa-solid fa-user-gear text-sm sm:text-base"></i>
+                            </div>
+                            <input type="text" id="dashboard-search-input" onkeyup="handleDashboardKeyUp(event)" placeholder="Ketik Nama, NIP, Jabatan, atau Bidang..." class="w-full pl-11 pr-28 py-3.5 bg-white dark:bg-slate-800 rounded-xl text-xs sm:text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-brand-300 dark:focus:ring-brand-900 transition-all shadow-inner">
+                            <button type="submit" class="absolute right-1.5 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 shadow">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                                <span>Cari</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
             <!-- Summary KPI Cards -->
             <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all">
@@ -283,58 +312,7 @@
         </div>
 
         <!-- ========================================== -->
-        <!-- VIEW 1.5: DATA PER JABATAN -->
-        <!-- ========================================== -->
-        <div id="view-jabatan" class="hidden space-y-6">
-            <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                        <i class="fa-solid fa-briefcase text-brand-600"></i>
-                        Data Pegawai per Jabatan / Level
-                    </h2>
-                    <p class="text-xs text-slate-500 dark:text-slate-400">Klik salah satu card kategori level di bawah untuk memfilter data pada tabel tunggal.</p>
-                </div>
-                <div class="flex items-center gap-3 w-full sm:w-auto">
-                    <div class="relative flex-1 sm:w-64">
-                        <input type="text" id="jabatan-search" oninput="renderJabatanView()" placeholder="Cari Pegawai / Jabatan..." class="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none">
-                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Category Summary Stats Bar (Interactive Cards) -->
-            <div id="jabatan-summary-bar" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5">
-                <!-- Dynamically populated stat pills -->
-            </div>
-
-            <!-- Single Table Container -->
-            <div id="jabatan-table-card" class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-                <!-- Dynamically populated single category table -->
-            </div>
-        </div>
-
-        <!-- ========================================== -->
-        <!-- VIEW 2: DATA PER BIDANG -->
-        <!-- ========================================== -->
-        <div id="view-bidang" class="hidden space-y-6">
-            <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <h2 class="text-lg font-bold text-slate-900 dark:text-white">Data Pegawai per Bidang</h2>
-                    <p class="text-xs text-slate-500 dark:text-slate-400">Menampilkan daftar unit bidang beserta daftar anggota pegawai didalamnya.</p>
-                </div>
-                <div class="relative w-full sm:w-64">
-                    <input type="text" id="bidang-search" oninput="renderBidangView()" placeholder="Cari Bidang..." class="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none">
-                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
-                </div>
-            </div>
-
-            <div id="bidang-cards-container" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Dynamically Populated Cards for each Bidang -->
-            </div>
-        </div>
-
-        <!-- ========================================== -->
-        <!-- VIEW 3: DATA PEGAWAI TABEL -->
+        <!-- VIEW 2: DATA PEGAWAI TABEL -->
         <!-- ========================================== -->
         <div id="view-pegawai" class="hidden space-y-6">
             <!-- Filter Bar -->
@@ -451,7 +429,61 @@
         </div>
 
         <!-- ========================================== -->
-        <!-- VIEW 4: DATA PEGAWAI PENSIUN -->
+        <!-- VIEW 3: DATA PER JABATAN -->
+        <!-- ========================================== -->
+        <div id="view-jabatan" class="hidden space-y-6">
+            <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <i class="fa-solid fa-briefcase text-brand-600"></i>
+                        Data Pegawai per Jabatan / Level
+                    </h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Klik salah satu card kategori level di bawah untuk memfilter data pada tabel tunggal.</p>
+                </div>
+                <div class="flex items-center gap-3 w-full sm:w-auto">
+                    <div class="relative flex-1 sm:w-64">
+                        <input type="text" id="jabatan-search" oninput="renderJabatanView()" placeholder="Cari Pegawai / Jabatan..." class="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Category Summary Stats Bar (Interactive Cards) -->
+            <div id="jabatan-summary-bar" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5">
+                <!-- Dynamically populated stat pills -->
+            </div>
+
+            <!-- Single Table Container -->
+            <div id="jabatan-table-card" class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                <!-- Dynamically populated single category table -->
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- VIEW 4: DATA PER BIDANG -->
+        <!-- ========================================== -->
+        <div id="view-bidang" class="hidden space-y-6">
+            <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <i class="fa-solid fa-sitemap text-brand-600"></i>
+                        Data Pegawai per Bidang
+                    </h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Menampilkan daftar unit bidang beserta daftar anggota pegawai didalamnya.</p>
+                </div>
+                <div class="relative w-full sm:w-64">
+                    <input type="text" id="bidang-search" oninput="renderBidangView()" placeholder="Cari Bidang..." class="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+                </div>
+            </div>
+
+            <div id="bidang-cards-container" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Dynamically Populated Cards for each Bidang -->
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- VIEW 5: DATA PEGAWAI PENSIUN -->
         <!-- ========================================== -->
         <div id="view-pensiun" class="hidden space-y-6">
             <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -500,7 +532,7 @@
         </div>
 
         <!-- ========================================== -->
-        <!-- VIEW 5: ABOUT SISTEM -->
+        <!-- VIEW 6: ABOUT SISTEM -->
         <!-- ========================================== -->
         <div id="view-about" class="hidden space-y-6">
             <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm space-y-6">
@@ -686,9 +718,10 @@
             fetchData();
         }
 
+        // Navigasi Tab
         function switchTab(tabId) {
             activeTab = tabId;
-            const tabs = ['dashboard', 'jabatan', 'bidang', 'pegawai', 'pensiun', 'about'];
+            const tabs = ['dashboard', 'pegawai', 'jabatan', 'bidang', 'pensiun', 'about'];
 
             tabs.forEach(t => {
                 const view = document.getElementById(`view-${t}`);
@@ -696,7 +729,7 @@
 
                 if (t === tabId) {
                     if (view) view.classList.remove('hidden');
-                    if (tabBtn) tabBtn.className = "nav-tab inline-flex items-center px-3.5 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap bg-brand-50 dark:bg-brand-900/40 text-brand-700 dark:text-brand-300";
+                    if (tabBtn) tabBtn.className = "nav-tab inline-flex items-center px-3.5 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap bg-brand-50 dark:bg-brand-900/40 text-brand-700 dark:text-brand-300 border border-brand-200 dark:border-brand-800/50 shadow-sm";
                 } else {
                     if (view) view.classList.add('hidden');
                     if (tabBtn) tabBtn.className = "nav-tab inline-flex items-center px-3.5 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800";
@@ -706,6 +739,29 @@
             if (tabId === 'jabatan') renderJabatanView();
             if (tabId === 'bidang') renderBidangView();
             if (tabId === 'pensiun') renderPensiunView();
+        }
+
+        // Form Search di Halaman Utama (Dashboard)
+        function handleDashboardSearch(e) {
+            if (e) e.preventDefault();
+            const dashInput = document.getElementById('dashboard-search-input');
+            const searchVal = dashInput ? dashInput.value.trim() : '';
+
+            // Sinkronkan kata kunci ke input pencarian Data Pegawai
+            const mainSearchInput = document.getElementById('search-input');
+            if (mainSearchInput) {
+                mainSearchInput.value = searchVal;
+            }
+
+            // Terapkan filter dan berpindah tab secara otomatis
+            applyFilters();
+            switchTab('pegawai');
+        }
+
+        function handleDashboardKeyUp(e) {
+            if (e.key === 'Enter') {
+                handleDashboardSearch(e);
+            }
         }
 
         async function fetchData() {
@@ -905,6 +961,7 @@
 
         function resetFilters() {
             if (document.getElementById('search-input')) document.getElementById('search-input').value = '';
+            if (document.getElementById('dashboard-search-input')) document.getElementById('dashboard-search-input').value = '';
             if (document.getElementById('filter-bidang')) document.getElementById('filter-bidang').value = '';
             if (document.getElementById('filter-status')) document.getElementById('filter-status').value = '';
             if (document.getElementById('filter-aktif')) document.getElementById('filter-aktif').value = '';
@@ -916,7 +973,6 @@
             if (!str || str === '-' || str === 'undefined' || str === 'null') return null;
             str = String(str).trim();
 
-            // 1. Check if Excel/Google Sheets Serial Number (e.g., 25154 or 45000)
             if (/^\d{4,5}(\.\d+)?$/.test(str)) {
                 const serial = parseFloat(str);
                 if (serial > 1000) {
@@ -927,13 +983,11 @@
                 }
             }
 
-            // 2. ISO / YYYY-MM-DD or YYYY/MM/DD
             if (/^\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}$/.test(str)) {
                 const [y, m, d] = str.split(/[\/\-]/).map(Number);
                 return new Date(y, m - 1, d);
             }
 
-            // 3. Text Month Formats (e.g., "12 November 1968" or "12-Nov-1968")
             const indonesianMonths = {
                 'jan': 0, 'januari': 0, 'feb': 1, 'februari': 1, 'mar': 2, 'maret': 2,
                 'apr': 3, 'april': 3, 'mei': 4, 'jun': 5, 'juni': 5, 'jul': 6, 'juli': 6,
@@ -952,7 +1006,6 @@
                 }
             }
 
-            // 4. DD/MM/YYYY or DD-MM-YYYY
             const parts = str.split(/[\/\-\.]/);
             if (parts.length === 3) {
                 let d, m, y;
@@ -979,13 +1032,11 @@
         function parsePensiunDate(p) {
             if (!p) return null;
 
-            // 1. Try TanggalPensiun direct string
             if (p.TanggalPensiun && p.TanggalPensiun !== '-' && p.TanggalPensiun !== 'undefined') {
                 const parsed = parseDateString(p.TanggalPensiun);
                 if (parsed) return parsed;
             }
 
-            // 2. Fallback: TanggalLahir or NIP birthdate
             let tglLahir = parseDateString(p.TanggalLahir);
             
             if (!tglLahir && p.NIP) {
@@ -1235,14 +1286,12 @@
             const jabatanStr = String(p.Jabatan || '').trim().toLowerCase();
             const statusStr = String(p.StatusPegawai || '').trim().toLowerCase();
 
-            // Match exact prefix like "0 -", "1 -", etc.
             for (const cat of JABATAN_CATEGORIES) {
                 if (levelStr.startsWith(cat.id + ' ') || levelStr.startsWith(cat.id + '-') || levelStr === cat.id) {
                     return cat.title;
                 }
             }
 
-            // Keyword matching in Level
             if (levelStr.includes('kadis') || levelStr.includes('sekdis')) return JABATAN_CATEGORIES[0].title;
             if (levelStr.includes('kepala bidang') || levelStr.includes('kabid')) return JABATAN_CATEGORIES[1].title;
             if (levelStr.includes('ketua tim') || levelStr.includes('kasubag') || levelStr.includes('upt')) return JABATAN_CATEGORIES[2].title;
@@ -1251,7 +1300,6 @@
             if (levelStr.includes('os') || levelStr.includes('ppnpn') || levelStr.includes('outsourcing') || levelStr.includes('non-asn')) return JABATAN_CATEGORIES[6].title;
             if (levelStr.includes('pns')) return JABATAN_CATEGORIES[3].title;
 
-            // Fallback matching in Jabatan / Status
             if (jabatanStr.includes('kepala dinas') || jabatanStr.includes('sekretaris dinas') || jabatanStr.includes('kadis') || jabatanStr.includes('sekdis')) return JABATAN_CATEGORIES[0].title;
             if (jabatanStr.includes('kepala bidang') || jabatanStr.includes('kabid')) return JABATAN_CATEGORIES[1].title;
             if (jabatanStr.includes('ketua tim') || jabatanStr.includes('kasubag') || jabatanStr.includes('kepala upt')) return JABATAN_CATEGORIES[2].title;
@@ -1271,7 +1319,6 @@
 
             const search = (document.getElementById('jabatan-search')?.value || '').toLowerCase();
 
-            // Group data by Jabatan Category
             const grouped = {};
             JABATAN_CATEGORIES.forEach(cat => grouped[cat.title] = []);
 
@@ -1284,13 +1331,11 @@
                 }
             });
 
-            // Summary cards list including 'Semua Level'
             const allCategoryCards = [
                 { id: 'all', title: 'Semua Level', color: 'bg-brand-600', badgeClass: 'bg-brand-50 dark:bg-brand-900/50 text-brand-700 dark:text-brand-300 border-brand-200' },
                 ...JABATAN_CATEGORIES
             ];
 
-            // Render Interactive Cards
             summaryContainer.innerHTML = allCategoryCards.map(cat => {
                 let count = 0;
                 if (cat.id === 'all') {
@@ -1315,7 +1360,6 @@
                 `;
             }).join('');
 
-            // Determine data to show in single table
             let displayMembers = [];
             let activeCatTitle = "Semua Level / Jabatan";
             let activeBadgeClass = "bg-brand-50 dark:bg-brand-900/50 text-brand-700 dark:text-brand-300 border-brand-200";
@@ -1331,7 +1375,6 @@
                 }
             }
 
-            // Apply search filter
             if (search) {
                 displayMembers = displayMembers.filter(p => 
                     p.Nama.toLowerCase().includes(search) ||
@@ -1769,7 +1812,6 @@
             
             let success = false;
 
-            // Method 1: Clipboard API
             if (navigator.clipboard && window.isSecureContext) {
                 try {
                     await navigator.clipboard.writeText(text);
@@ -1779,7 +1821,6 @@
                 }
             }
 
-            // Method 2: execCommand fallback
             if (!success) {
                 try {
                     const tempInput = document.createElement('textarea');
