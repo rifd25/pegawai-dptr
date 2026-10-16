@@ -246,7 +246,7 @@
 
             <!-- Charts Section -->
             <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm">
+                <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm transition-all duration-300">
                     <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-4">
                         <i class="fa-solid fa-chart-pie text-brand-500"></i>
                         Sebaran Pegawai per Bidang
@@ -256,7 +256,7 @@
                     </div>
                 </div>
 
-                <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm">
+                <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm transition-all duration-300">
                     <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-4">
                         <i class="fa-solid fa-chart-bar text-indigo-500"></i>
                         Status Kepegawaian
@@ -1685,12 +1685,47 @@
                 return cd.daysLeft > 0 && cd.daysLeft <= 730;
             }).length;
 
-            if (document.getElementById('kpi-total')) document.getElementById('kpi-total').textContent = total;
-            if (document.getElementById('kpi-aktif')) document.getElementById('kpi-aktif').textContent = aktif;
+            // Animate primary numeric KPI counts smoothly
+            animateCounter('kpi-total', total, 1000);
+            animateCounter('kpi-aktif', aktif, 1000);
+            animateCounter('kpi-pns', pns, 1000);
+            animateCounter('kpi-pensiun', mendekatiPensiun, 1000);
+
             if (document.getElementById('kpi-nonaktif-sub')) document.getElementById('kpi-nonaktif-sub').textContent = `${nonAktif} Non-Aktif`;
-            if (document.getElementById('kpi-pns')) document.getElementById('kpi-pns').textContent = pns;
             if (document.getElementById('kpi-nonpns-sub')) document.getElementById('kpi-nonpns-sub').textContent = `${nonPns} PPPK / Non-PNS`;
-            if (document.getElementById('kpi-pensiun')) document.getElementById('kpi-pensiun').textContent = mendekatiPensiun;
+        }
+
+        // Helper function for smooth animated number count-up effect
+        function animateCounter(elementId, targetValue, duration = 1000) {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+
+            const startValue = parseInt(element.textContent.replace(/\D/g, '')) || 0;
+            if (startValue === targetValue) {
+                element.textContent = targetValue;
+                return;
+            }
+
+            const startTime = performance.now();
+
+            function updateCount(currentTime) {
+                const elapsedTime = currentTime - startTime;
+                const progress = Math.min(elapsedTime / duration, 1);
+
+                // Ease-out cubic formula for smooth slowdown at the end
+                const easeOutProgress = 1 - Math.pow(1 - progress, 3);
+                const currentValue = Math.floor(startValue + (targetValue - startValue) * easeOutProgress);
+
+                element.textContent = currentValue;
+
+                if (progress < 1) {
+                    requestAnimationFrame(updateCount);
+                } else {
+                    element.textContent = targetValue;
+                }
+            }
+
+            requestAnimationFrame(updateCount);
         }
 
         function renderCharts() {
@@ -1722,6 +1757,12 @@
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        animation: {
+                            animateScale: true,
+                            animateRotate: true,
+                            duration: 1200,
+                            easing: 'easeOutQuart'
+                        },
                         plugins: {
                             legend: { position: 'bottom', labels: { color: textColor, font: { size: 10 } } }
                         }
@@ -1754,6 +1795,10 @@
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        animation: {
+                            duration: 1000,
+                            easing: 'easeOutCubic'
+                        },
                         scales: {
                             x: { ticks: { color: textColor } },
                             y: { ticks: { color: textColor, stepSize: 1 }, beginAtZero: true }
